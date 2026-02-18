@@ -1,11 +1,11 @@
 mod error;
 mod kind;
 
-pub use error::SpannedError;
+pub use error::{ResultExt, SpannedError};
 pub use spanned_error_macros::spanned_error;
 
 pub mod prelude {
-    pub use super::{SpannedError, spanned_error};
+    pub use super::{ResultExt, SpannedError, spanned_error};
 }
 
 #[doc(hidden)]

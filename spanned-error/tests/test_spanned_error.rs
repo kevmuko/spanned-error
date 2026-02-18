@@ -1,6 +1,6 @@
 use std::{fmt, io};
 
-use spanned_error::{SpannedError, spanned_error};
+use spanned_error::{ResultExt, SpannedError, spanned_error};
 
 // -- Test error types --
 
@@ -159,4 +159,17 @@ fn closures_not_transformed() {
     let result = inner();
     assert!(result.is_err());
     assert!(matches!(result.unwrap_err().inner, MyError::Io(_)));
+}
+
+#[test]
+fn result_ext_into_spanned_ok() {
+    let result = ok_value().into_spanned();
+    assert_eq!(result.unwrap(), 42);
+}
+
+#[test]
+fn result_ext_into_spanned_err() {
+    let result = plain_err().into_spanned();
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err().inner.kind(), io::ErrorKind::NotFound);
 }

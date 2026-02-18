@@ -27,3 +27,18 @@ impl<E: fmt::Display> fmt::Display for SpannedError<E> {
 }
 
 impl<E: fmt::Debug + fmt::Display> std::error::Error for SpannedError<E> {}
+
+pub trait ResultExt<T, E> {
+    fn into_spanned(self) -> Result<T, SpannedError<E>>;
+}
+
+impl<T, E> ResultExt<T, E> for Result<T, E> {
+    #[track_caller]
+    fn into_spanned(self) -> Result<T, SpannedError<E>> {
+        self.map_err(|inner| SpannedError {
+            inner,
+            span: tracing::Span::current(),
+            location: std::panic::Location::caller(),
+        })
+    }
+}
