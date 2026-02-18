@@ -54,17 +54,16 @@ impl VisitMut for SpannedVisitor {
             return;
         };
 
-        if let Expr::Call(call) = return_expr.as_ref() {
-            if is_err_call(call) {
-                if let Some(arg) = call.args.first() {
-                    let wrapped = wrap_expr(arg);
-                    let new_expr: Expr = syn::parse2(quote! {
-                        ::core::result::Result::Err(#wrapped)
-                    })
-                    .expect("spanned: failed to parse return Err expansion");
-                    *return_expr = Box::new(new_expr);
-                }
-            }
+        if let Expr::Call(call) = return_expr.as_ref()
+            && is_err_call(call)
+            && let Some(arg) = call.args.first()
+        {
+            let wrapped = wrap_expr(arg);
+            let new_expr: Expr = syn::parse2(quote! {
+                ::core::result::Result::Err(#wrapped)
+            })
+            .expect("spanned: failed to parse return Err expansion");
+            **return_expr = new_expr;
         }
     }
 }

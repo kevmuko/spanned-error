@@ -60,7 +60,7 @@ pub fn is_err_call(call: &syn::ExprCall) -> bool {
 }
 
 /// Transform a tail `Err(e)` expression (last expression without semicolon).
-pub fn transform_tail_err(stmts: &mut Vec<Stmt>) {
+pub fn transform_tail_err(stmts: &mut [Stmt]) {
     let Some(last) = stmts.last_mut() else {
         return;
     };
@@ -69,16 +69,15 @@ pub fn transform_tail_err(stmts: &mut Vec<Stmt>) {
         return;
     };
 
-    if let Expr::Call(call) = expr {
-        if is_err_call(call) {
-            if let Some(arg) = call.args.first() {
-                let wrapped = wrap_expr(arg);
-                let new_expr: Expr = syn::parse2(quote! {
-                    ::core::result::Result::Err(#wrapped)
-                })
-                .expect("spanned: failed to parse tail Err expansion");
-                *expr = new_expr;
-            }
-        }
+    if let Expr::Call(call) = expr
+        && is_err_call(call)
+        && let Some(arg) = call.args.first()
+    {
+        let wrapped = wrap_expr(arg);
+        let new_expr: Expr = syn::parse2(quote! {
+            ::core::result::Result::Err(#wrapped)
+        })
+        .expect("spanned: failed to parse tail Err expansion");
+        *expr = new_expr;
     }
 }

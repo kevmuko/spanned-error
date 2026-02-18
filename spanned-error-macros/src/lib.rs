@@ -26,17 +26,14 @@ pub fn spanned_error(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let err_ty = err_ty.clone();
 
     // Rewrite return type to Result<T, ::spanned_error::SpannedError<E>>
-    if let ReturnType::Type(_, ref mut ty) = func.sig.output {
-        if let Type::Path(TypePath { path, .. }) = ty.as_mut() {
-            if let Some(last) = path.segments.last_mut() {
-                if let PathArguments::AngleBracketed(args) = &mut last.arguments {
-                    if let Some(GenericArgument::Type(et)) = args.args.last_mut() {
-                        *et = syn::parse2(quote! { ::spanned_error::SpannedError<#err_ty> })
-                            .expect("spanned_error: failed to parse SpannedError<E> type");
-                    }
-                }
-            }
-        }
+    if let ReturnType::Type(_, ref mut ty) = func.sig.output
+        && let Type::Path(TypePath { path, .. }) = ty.as_mut()
+        && let Some(last) = path.segments.last_mut()
+        && let PathArguments::AngleBracketed(args) = &mut last.arguments
+        && let Some(GenericArgument::Type(et)) = args.args.last_mut()
+    {
+        *et = syn::parse2(quote! { ::spanned_error::SpannedError<#err_ty> })
+            .expect("spanned_error: failed to parse SpannedError<E> type");
     }
 
     // Walk AST and transform ? and return Err(...)
