@@ -19,7 +19,31 @@ async fn approve(&self, id: String) -> Result<Response, MyError> {
 }
 ```
 
-The compiled signature becomes `Result<Response, SpannedError<MyError>>`, and every error path automatically gets span + location metadata — no manual `.into_spanned()` or `.change_spanned()` calls needed.
+The compiled signature becomes `Result<Response, SpannedError<MyError>>`, and every error path automatically gets span + location metadata.
+
+## Consuming `SpannedError`
+
+Use `enter()` to re-enter the captured span when converting errors into responses. This ensures logs emitted during error handling are attributed to the original error site:
+
+```rust
+impl<E: Into<ErrorResponse> + fmt::Display> From<SpannedError<E>> for ErrorResponse {
+    fn from(spanned: SpannedError<E>) -> Self {
+        let _guard = spanned.enter();
+
+        let message = spanned.inner.to_string();
+        let response: ErrorResponse = spanned.inner.into();
+        let status = StatusCode::from(response.code);
+
+        if status.is_server_error() {
+            error!(error = %message, code = ?response.code, ?status, "server error response");
+        } else if status.is_client_error() {
+            warn!(error = %message, code = ?response.code, ?status, "client error response");
+        }
+
+        response
+    }
+}
+```
 
 ## How it works
 
