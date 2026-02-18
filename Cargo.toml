@@ -1,0 +1,11 @@
+[workspace]
+resolver = "3"
+members = ["spanned-error", "spanned-error-macros"]
+
+[workspace.dependencies]
+spanned-error-macros = { path = "spanned-error-macros" }
+tracing = "0.1"
+syn = { version = "2", features = ["full", "visit-mut"] }
+quote = "1"
+proc-macro2 = "1"
+tokio = { version = "1", features = ["rt"] }
