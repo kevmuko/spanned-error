@@ -26,18 +26,20 @@ The compiled signature becomes `Result<Response, SpannedError<MyError>>`, and ev
 Use `enter()` to re-enter the captured span when converting errors into responses. This ensures logs emitted during error handling are attributed to the original error site:
 
 ```rust
-impl<E: Into<ErrorResponse> + fmt::Display> From<SpannedError<E>> for ErrorResponse {
-    fn from(spanned: SpannedError<E>) -> Self {
-        let _guard = spanned.enter();
+use axum::response::{IntoResponse, Response};
 
-        let message = spanned.inner.to_string();
-        let response: ErrorResponse = spanned.inner.into();
-        let status = StatusCode::from(response.code);
+impl<E: IntoResponse + fmt::Display> IntoResponse for SpannedError<E> {
+    fn into_response(self) -> Response {
+        let _guard = self.enter();
+
+        let message = self.inner.to_string();
+        let response = self.inner.into_response();
+        let status = response.status();
 
         if status.is_server_error() {
-            error!(error = %message, code = ?response.code, ?status, "server error response");
+            error!(error = %message, ?status, "server error response");
         } else if status.is_client_error() {
-            warn!(error = %message, code = ?response.code, ?status, "client error response");
+            warn!(error = %message, ?status, "client error response");
         }
 
         response
