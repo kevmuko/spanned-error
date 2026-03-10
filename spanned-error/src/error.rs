@@ -12,6 +12,19 @@ impl<E> SpannedError<E> {
     pub fn enter(&self) -> EnteredSpan {
         tracing::info_span!(parent: &self.span, "source", location = %self.location).entered()
     }
+
+    pub fn in_scope<R>(&self, f: impl FnOnce() -> R) -> R {
+        let _guard = self.enter();
+        f()
+    }
+
+    pub fn map<E2>(self, f: impl FnOnce(E) -> E2) -> SpannedError<E2> {
+        SpannedError {
+            inner: f(self.inner),
+            span: self.span,
+            location: self.location,
+        }
+    }
 }
 
 impl<E: fmt::Debug> fmt::Debug for SpannedError<E> {
@@ -40,5 +53,15 @@ impl<T, E> ResultExt<T, E> for Result<T, E> {
             span: tracing::Span::current(),
             location: std::panic::Location::caller(),
         })
+    }
+}
+
+pub trait SpannedResultExt<T, E> {
+    fn map_spanned<E2>(self, f: impl FnOnce(E) -> E2) -> Result<T, SpannedError<E2>>;
+}
+
+impl<T, E> SpannedResultExt<T, E> for Result<T, SpannedError<E>> {
+    fn map_spanned<E2>(self, f: impl FnOnce(E) -> E2) -> Result<T, SpannedError<E2>> {
+        self.map_err(|e| e.map(f))
     }
 }

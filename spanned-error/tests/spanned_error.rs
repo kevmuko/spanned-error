@@ -2,8 +2,6 @@ use std::{fmt, io};
 
 use spanned_error::{ResultExt, SpannedError, spanned_error};
 
-// -- Test error types --
-
 #[derive(Debug)]
 enum MyError {
     Io(io::Error),
@@ -31,8 +29,6 @@ impl From<SpannedError<io::Error>> for MyError {
     }
 }
 
-// -- Helpers --
-
 fn ok_value() -> Result<i32, io::Error> {
     Ok(42)
 }
@@ -40,8 +36,6 @@ fn ok_value() -> Result<i32, io::Error> {
 fn plain_err() -> Result<i32, io::Error> {
     Err(io::Error::new(io::ErrorKind::NotFound, "not found"))
 }
-
-// -- Tests --
 
 #[test]
 fn sync_try_plain_error() {
