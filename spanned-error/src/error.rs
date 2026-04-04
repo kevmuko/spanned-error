@@ -27,9 +27,35 @@ impl<E> SpannedError<E> {
     }
 }
 
-impl<E: fmt::Debug> fmt::Debug for SpannedError<E> {
+impl<E: std::error::Error> fmt::Debug for SpannedError<E> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.inner.fmt(f)
+        if f.alternate() {
+            // {:#?} — multiline for CLI/human reading
+            write!(f, "{}", self.inner)?;
+            if let Some(cause) = self.inner.source() {
+                write!(f, "\n\nCaused by:")?;
+                let mut current: &dyn std::error::Error = cause;
+                let mut n = 0;
+                loop {
+                    write!(f, "\n    {n}: {current}")?;
+                    n += 1;
+                    match current.source() {
+                        Some(next) => current = next,
+                        None => break,
+                    }
+                }
+            }
+        } else {
+            // {:?} — single-line for tracing/structured logs
+            write!(f, "{}", self.inner)?;
+            let mut current: &dyn std::error::Error = &self.inner;
+            while let Some(source) = current.source() {
+                write!(f, ": {source}")?;
+                current = source;
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -39,7 +65,11 @@ impl<E: fmt::Display> fmt::Display for SpannedError<E> {
     }
 }
 
-impl<E: fmt::Debug + fmt::Display> std::error::Error for SpannedError<E> {}
+impl<E: std::error::Error> std::error::Error for SpannedError<E> {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.inner.source()
+    }
+}
 
 pub trait ResultExt<T, E> {
     fn into_spanned(self) -> Result<T, SpannedError<E>>;
